@@ -46,10 +46,18 @@ def draw_board():
     screen.fill(bg)
     for x in range(1, BOARD_SIZE):
         pygame.draw.line(
-            screen, grid, (0, SCALING_FACTOR * x), (SCREEN_WIDTH, SCALING_FACTOR * x), LINE_WIDTH
+            screen,
+            grid,
+            (0, SCALING_FACTOR * x),
+            (SCREEN_WIDTH, SCALING_FACTOR * x),
+            LINE_WIDTH,
         )
         pygame.draw.line(
-            screen, grid, (SCALING_FACTOR * x, 0), (SCALING_FACTOR * x, SCREEN_HEIGHT), LINE_WIDTH
+            screen,
+            grid,
+            (SCALING_FACTOR * x, 0),
+            (SCALING_FACTOR * x, SCREEN_HEIGHT),
+            LINE_WIDTH,
         )
 
 
@@ -86,19 +94,28 @@ def check_win():
     markers = np.array(markers)
     for i in range(BOARD_SIZE):
         for j in range(BOARD_SIZE):
-            col_sum = sum(markers[i, j:j + WIN_CONDITION])
-            row_sum = sum(markers[i:i + WIN_CONDITION, j])
+            col_sum = sum(markers[i, j : j + WIN_CONDITION])
+            row_sum = sum(markers[i : i + WIN_CONDITION, j])
             diag_sum = 0
             for k in range(WIN_CONDITION):
                 if i + k < BOARD_SIZE and j + k < BOARD_SIZE:
                     diag_sum += markers[i + k, j + k]
-            
-            if col_sum == WIN_CONDITION or row_sum == WIN_CONDITION or diag_sum == WIN_CONDITION:
+
+            if (
+                col_sum == WIN_CONDITION
+                or row_sum == WIN_CONDITION
+                or diag_sum == WIN_CONDITION
+            ):
                 game_over = True
                 winner = 1
-            elif col_sum == -WIN_CONDITION or row_sum == -WIN_CONDITION or diag_sum == -WIN_CONDITION:
+            elif (
+                col_sum == -WIN_CONDITION
+                or row_sum == -WIN_CONDITION
+                or diag_sum == -WIN_CONDITION
+            ):
                 game_over = True
                 winner = 2
+
 
 def draw_game_over(winner):
     if winner != 0:

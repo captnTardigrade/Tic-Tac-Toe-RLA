@@ -5,8 +5,8 @@ import numpy as np
 pygame.init()
 
 LINE_WIDTH = 6
-BOARD_SIZE = 5
-WIN_CONDITION = 4
+BOARD_SIZE = 3
+WIN_CONDITION = 3
 
 SCALING_FACTOR = 100
 
@@ -19,6 +19,11 @@ pygame.display.set_caption("Tic-Tac-Toe")
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
+
+DIALOG_COLOR = (205, 180, 219)
+
+X_MARKER_COLOR = (247, 37, 133)
+O_MARKER_COLOR = (76, 201, 240)
 
 # define font
 font = pygame.font.SysFont(None, 40)
@@ -41,8 +46,8 @@ for x in range(BOARD_SIZE):
 
 
 def draw_board():
-    bg = (255, 255, 210)
-    grid = (50, 50, 50)
+    bg = (255, 218, 233)
+    grid = (42, 52, 57)
     screen.fill(bg)
     for x in range(1, BOARD_SIZE):
         pygame.draw.line(
@@ -69,21 +74,21 @@ def draw_markers():
             if y == 1:
                 pygame.draw.line(
                     screen,
-                    RED,
+                    X_MARKER_COLOR,
                     (x_pos * 100 + 15, y_pos * 100 + 15),
                     (x_pos * 100 + 85, y_pos * 100 + 85),
                     LINE_WIDTH,
                 )
                 pygame.draw.line(
                     screen,
-                    RED,
+                    X_MARKER_COLOR,
                     (x_pos * 100 + 85, y_pos * 100 + 15),
                     (x_pos * 100 + 15, y_pos * 100 + 85),
                     LINE_WIDTH,
                 )
             if y == -1:
                 pygame.draw.circle(
-                    screen, GREEN, (x_pos * 100 + 50, y_pos * 100 + 50), 38, LINE_WIDTH
+                    screen, O_MARKER_COLOR, (x_pos * 100 + 50, y_pos * 100 + 50), 38, LINE_WIDTH
                 )
             y_pos += 1
         x_pos += 1
@@ -118,20 +123,21 @@ def check_win():
 
 
 def draw_game_over(winner):
+    TEXT_COLOR =  (2, 48, 71)
     if winner != 0:
         end_text = "Player " + str(winner) + " wins!"
     elif winner == 0:
         end_text = "You have tied!"
 
-    end_img = font.render(end_text, True, BLUE)
+    end_img = font.render(end_text, True, TEXT_COLOR)
     pygame.draw.rect(
-        screen, GREEN, (SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 - 60, 200, 50)
+        screen, DIALOG_COLOR, (SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 - 60, 200, 50)
     )
     screen.blit(end_img, (SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 - 50))
 
     again_text = "Play Again?"
-    again_img = font.render(again_text, True, BLUE)
-    pygame.draw.rect(screen, GREEN, again_rect)
+    again_img = font.render(again_text, True, TEXT_COLOR)
+    pygame.draw.rect(screen, DIALOG_COLOR, again_rect)
     screen.blit(again_img, (SCREEN_WIDTH // 2 - 80, SCREEN_HEIGHT // 2 + 10))
 
 

@@ -2,6 +2,10 @@
 import pygame
 import numpy as np
 
+SEED = 1337
+
+rng = np.random.default_rng(SEED)
+
 pygame.init()
 
 FPS = 60
@@ -35,11 +39,12 @@ class TicTacToe:
         self.board_size = board_size
         self.win_condition = win_condition
 
+        self.num_cells = self.board_size ** 2
+
         self.SCREEN_WIDTH, self.SCREEN_HEIGHT = (
             self.board_size * SCALING_FACTOR,
             self.board_size * SCALING_FACTOR,
         )
-        
 
         self.screen = pygame.display.set_mode((self.SCREEN_WIDTH, self.SCREEN_HEIGHT))
         pygame.display.set_caption("Tic-Tac-Toe")
@@ -106,19 +111,18 @@ class TicTacToe:
             x_pos += 1
 
     def check_win(self):
-        self.markers = np.array(self.markers)
+        markers = np.array(self.markers)
         for i in range(self.board_size):
             for j in range(self.board_size):
-                col_sum = sum(self.markers[i, j : j + self.win_condition])
-                row_sum = sum(self.markers[i : i + self.win_condition, j])
+                col_sum = sum(markers[i, j : j + self.win_condition])
+                row_sum = sum(markers[i : i + self.win_condition, j])
                 diag_sum = 0
                 anti_diag_sum = 0
                 for k in range(self.win_condition):
                     if i + k < self.board_size and j + k < self.board_size:
-                        diag_sum += self.markers[i + k, j + k]
+                        diag_sum += markers[i + k, j + k]
                     if i + k < self.board_size and j - k >= 0:
-                        anti_diag_sum += self.markers[i + k, j - k]
-                    
+                        anti_diag_sum += markers[i + k, j - k]
 
                 if (
                     col_sum == self.win_condition
@@ -136,10 +140,10 @@ class TicTacToe:
                 ):
                     self.game_over = True
                     self.winner = 2
-        
+
         # check for tie
-        abs_markers = np.absolute(self.markers)
-        if np.sum(abs_markers) == self.board_size ** 2:
+        abs_markers = np.absolute(markers)
+        if np.sum(abs_markers) == self.board_size**2:
             self.game_over = True
             self.winner = 0
 
@@ -166,6 +170,14 @@ class TicTacToe:
         self.screen.blit(
             again_img, (self.SCREEN_WIDTH // 2 - 80, self.SCREEN_HEIGHT // 2 + 10)
         )
+
+    def place_marker(self, x, y, player) -> bool:
+        if self.markers[x][y] == 0:
+            self.markers[x][y] = player
+            self.player = -self.player
+            self.check_win()
+            return True
+        return False
 
 def main():
     # initialize pygame
@@ -200,6 +212,16 @@ def main():
                         game.markers[cell_x][cell_y] = game.player
                         game.player *= -1
                         game.check_win()
+
+                        # computer turn
+                        if game.player == -1:
+                            x, y = rng.choice(game.board_size, 2, replace=True)
+                            while not game.place_marker(
+                                x, y,
+                                game.player,
+                            ):
+                                x, y = rng.choice(game.board_size, 2, replace=True)
+
 
         # check if game has been won
         if game.game_over == True:

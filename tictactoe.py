@@ -39,7 +39,7 @@ class TicTacToe:
         self.board_size = board_size
         self.win_condition = win_condition
 
-        self.num_cells = self.board_size ** 2
+        self.num_cells = self.board_size**2
 
         self.SCREEN_WIDTH, self.SCREEN_HEIGHT = (
             self.board_size * SCALING_FACTOR,
@@ -179,6 +179,7 @@ class TicTacToe:
             return True
         return False
 
+
 def main():
     # initialize pygame
     game = TicTacToe(4, 3)
@@ -200,16 +201,16 @@ def main():
                 run = False
             x, y = rng.choice(game.board_size, 2, replace=True)
             while not game.game_over and not game.place_marker(
-                x, y,
+                x,
+                y,
                 game.player,
             ):
                 x, y = rng.choice(game.board_size, 2, replace=True)
 
-
         # check if game has been won
         if game.game_over == True:
             game.draw_game_over(game.winner)
-            
+
             mouse_clicked = False
             while not mouse_clicked:
                 event = pygame.event.wait()

@@ -112,14 +112,19 @@ class TicTacToe:
                 col_sum = sum(self.markers[i, j : j + self.win_condition])
                 row_sum = sum(self.markers[i : i + self.win_condition, j])
                 diag_sum = 0
+                anti_diag_sum = 0
                 for k in range(self.win_condition):
                     if i + k < self.board_size and j + k < self.board_size:
                         diag_sum += self.markers[i + k, j + k]
+                    if i + k < self.board_size and j - k >= 0:
+                        anti_diag_sum += self.markers[i + k, j - k]
+                    
 
                 if (
                     col_sum == self.win_condition
                     or row_sum == self.win_condition
                     or diag_sum == self.win_condition
+                    or anti_diag_sum == self.win_condition
                 ):
                     self.game_over = True
                     self.winner = 1
@@ -127,9 +132,16 @@ class TicTacToe:
                     col_sum == -self.win_condition
                     or row_sum == -self.win_condition
                     or diag_sum == -self.win_condition
+                    or anti_diag_sum == -self.win_condition
                 ):
                     self.game_over = True
                     self.winner = 2
+        
+        # check for tie
+        abs_markers = np.absolute(self.markers)
+        if np.sum(abs_markers) == self.board_size ** 2:
+            self.game_over = True
+            self.winner = 0
 
     def draw_game_over(self, winner):
         TEXT_COLOR = (2, 48, 71)
@@ -155,10 +167,9 @@ class TicTacToe:
             again_img, (self.SCREEN_WIDTH // 2 - 80, self.SCREEN_HEIGHT // 2 + 10)
         )
 
-
 def main():
     # initialize pygame
-    game = TicTacToe(5, 3)
+    game = TicTacToe(4, 3)
 
     # set up clock (for efficiency)
     clock = pygame.time.Clock()

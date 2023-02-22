@@ -198,51 +198,39 @@ def main():
             # handle game exit
             if event.type == pygame.QUIT:
                 run = False
-            # run new game
-            if not game.game_over:
-                # check for mouseclick
-                if event.type == pygame.MOUSEBUTTONDOWN and game.clicked == False:
-                    game.clicked = True
-                if event.type == pygame.MOUSEBUTTONUP and game.clicked == True:
-                    game.clicked = False
-                    pos = pygame.mouse.get_pos()
-                    cell_x = pos[0] // SCALING_FACTOR
-                    cell_y = pos[1] // SCALING_FACTOR
-                    if game.markers[cell_x][cell_y] == 0:
-                        game.markers[cell_x][cell_y] = game.player
-                        game.player *= -1
-                        game.check_win()
-
-                        # computer turn
-                        if game.player == -1:
-                            x, y = rng.choice(game.board_size, 2, replace=True)
-                            while not game.place_marker(
-                                x, y,
-                                game.player,
-                            ):
-                                x, y = rng.choice(game.board_size, 2, replace=True)
+            x, y = rng.choice(game.board_size, 2, replace=True)
+            while not game.game_over and not game.place_marker(
+                x, y,
+                game.player,
+            ):
+                x, y = rng.choice(game.board_size, 2, replace=True)
 
 
         # check if game has been won
         if game.game_over == True:
             game.draw_game_over(game.winner)
-            # check for mouseclick to see if we clicked on Play Again
-            if event.type == pygame.MOUSEBUTTONDOWN and game.clicked == False:
-                game.clicked = True
-            if event.type == pygame.MOUSEBUTTONUP and game.clicked == True:
-                game.clicked = False
-                pos = pygame.mouse.get_pos()
-                if game.again_rect.collidepoint(pos):
-                    # reset variables
-                    game.game_over = False
-                    game.player = 1
-                    game.pos = (0, 0)
-                    game.markers = []
-                    game.winner = 0
-                    # create empty BOARD_SIZE x BOARD_SIZE list to represent the grid
-                    for _ in range(game.board_size):
-                        row = [0] * game.board_size
-                        game.markers.append(row)
+            
+            mouse_clicked = False
+            while not mouse_clicked:
+                event = pygame.event.wait()
+                # check for mouseclick to see if we clicked on Play Again
+                if event.type == pygame.MOUSEBUTTONDOWN and game.clicked == False:
+                    game.clicked = True
+                if event.type == pygame.MOUSEBUTTONUP and game.clicked == True:
+                    game.clicked = False
+                    pos = pygame.mouse.get_pos()
+                    if game.again_rect.collidepoint(pos):
+                        # reset variables
+                        game.game_over = False
+                        game.player = 1
+                        game.pos = (0, 0)
+                        game.markers = []
+                        game.winner = 0
+                        # create empty BOARD_SIZE x BOARD_SIZE list to represent the grid
+                        for _ in range(game.board_size):
+                            row = [0] * game.board_size
+                            game.markers.append(row)
+                mouse_clicked = True
 
         # update display
         pygame.display.update()

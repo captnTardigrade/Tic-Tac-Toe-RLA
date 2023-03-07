@@ -30,6 +30,9 @@ font = pygame.font.SysFont("Arial", 40)
 
 
 class TicTacToe:
+    """A Tic-Tac-Toe game
+    """
+
     def __init__(self, board_size: int = 3, win_condition: int = 3) -> None:
         self.clicked = False
         self.player = 1
@@ -63,6 +66,7 @@ class TicTacToe:
         )
 
     def draw_board(self):
+        """draw the board on the screen"""
         bg = (255, 218, 233)
         grid = (42, 52, 57)
         self.screen.fill(bg)
@@ -83,6 +87,8 @@ class TicTacToe:
             )
 
     def draw_markers(self):
+        """draw markers on the screen
+        """
         x_pos = 0
         for x in self.markers:
             y_pos = 0
@@ -114,6 +120,7 @@ class TicTacToe:
             x_pos += 1
 
     def check_win(self):
+        """checks if there is a winner"""
         for i in range(self.board_size):
             for j in range(self.board_size):
                 col_sum = sum(self.markers[i, j : j + self.win_condition])
@@ -150,7 +157,8 @@ class TicTacToe:
             self.game_over = True
             self.winner = 0
 
-    def draw_game_over(self, winner):
+    def draw_game_over(self, winner: int):
+        """draws the game over screen"""
         TEXT_COLOR = (2, 48, 71)
         end_text = "You have tied!"
         if winner != 0:
@@ -174,12 +182,20 @@ class TicTacToe:
         )
 
     def place_marker(self, x: int, y: int, player: int) -> None:
-        if self._is_legal_action(self.markers, x, y):
+        """places a marker on the board and updates the board inpalce
+
+        Args:
+            x (int): column
+            y (int): row
+            player (int): current player [1 -> player 1 (X), -1 -> player 2(O)]
+        """
+        if self.is_legal_action(self.markers, x, y):
             self.markers[x][y] = player
             self.player = -self.player
             self.check_win()
 
-    def _is_legal_action(self, state: np.ndarray, x: int, y: int) -> bool:
+    @staticmethod
+    def is_legal_action(state: np.ndarray, x: int, y: int) -> bool:
         """A utility function to check if the action is legal"""
         return state[x][y] == 0
 
@@ -197,7 +213,7 @@ class TicTacToe:
         state[state == 2] = -1
         return val
 
-    def _index_to_state(self, index: int) -> np.ndarray:
+    def index_to_state(self, index: int) -> np.ndarray:
         """A utility function to convert index to state
         Args:
             index (int): index of the state from the state space
@@ -230,7 +246,8 @@ class TicTacToe:
 
         return (-1, -1)
 
-    def _available_actions(self, state: np.ndarray) -> np.ndarray:
+    @staticmethod
+    def available_actions(state: np.ndarray) -> np.ndarray:
         """A utility function to get the available actions
         Args:
             state (np.ndarray): the current state of the board
@@ -248,8 +265,8 @@ class TicTacToe:
         )
         for i in range(3**self.num_cells):
             marker = 1 if i % 2 == 0 else -1
-            state = self._index_to_state(i)
-            available_actions = self._available_actions(state)
+            state = self.index_to_state(i)
+            available_actions = self.available_actions(state)
             for action in available_actions:
                 next_state = state.copy()
                 next_state[action[0]][action[1]] = marker
@@ -259,6 +276,8 @@ class TicTacToe:
             # normalize the row
             self.transition_matrix[i] /= self.transition_matrix[i].sum()
             val = np.sum(self.transition_matrix[i])
+
+            # A hack to fix the floating point error; ref: https://github.com/numpy/numpy/issues/8317
             # check the first non-zero index in the row
             first_non_zero_index = np.argwhere(self.transition_matrix[i] != 0)[0][0]
             self.transition_matrix[i][first_non_zero_index] = (
@@ -267,6 +286,7 @@ class TicTacToe:
                 + self.transition_matrix[i][first_non_zero_index]
             )
 
+            # check if the row is valid
             if np.isnan(self.transition_matrix[i].sum()):
                 self.transition_matrix[i] = np.zeros(3**self.num_cells)
             elif np.sum(self.transition_matrix[i]) != 1:
@@ -278,6 +298,7 @@ class TicTacToe:
                 )
 
     def reset(self):
+        """resets the game"""
         self.markers = np.zeros((self.board_size, self.board_size))
         self.player = 1
         self.game_over = False
@@ -289,7 +310,16 @@ class TicTacToe:
             pass
         self.clicked = False
 
-    def transition_function(self, action, next_state) -> float:
+    def transition_function(self, action: Tuple[int, int], next_state: np.ndarray) -> float:
+        """(Unused) A utility function to get the transition probability of the action
+
+        Args:
+            action (Tuple[int, int]): the action to be performed
+            next_state (np.ndarray): the state after the action is performed
+
+        Returns:
+            float: the transition probability of the action
+        """
         current_state_index = self.state_to_index(self.markers)
         next_state_index = self.state_to_index(next_state)
         available_actions = np.argwhere(self.markers == 0)
@@ -334,14 +364,13 @@ def main():
                 else:
                     next_state_index = int(rng.multinomial(1, probabilities).argmax())
 
-                    next_state = game._index_to_state(next_state_index)
+                    next_state = game.index_to_state(next_state_index)
                     opponent_action = game.get_action(game.markers, next_state)
 
                     x, y = opponent_action
                     game.place_marker(x, y, game.player)
-                    game.check_win()
             else:
-                random_action = rng.choice(game._available_actions(game.markers))
+                random_action = rng.choice(game.available_actions(game.markers))
                 x, y = random_action
                 game.place_marker(x, y, game.player)
                 game.check_win()

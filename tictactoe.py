@@ -3,6 +3,7 @@ import pygame
 import numpy as np
 from functools import reduce
 from typing import List, Tuple
+import numpy.typing as npt
 
 SEED = 1337
 
@@ -33,12 +34,13 @@ class TicTacToe:
     """A Tic-Tac-Toe game
     """
 
-    def __init__(self, board_size: int = 3, win_condition: int = 3) -> None:
+    def __init__(self, board_size: int = 3, win_condition: int = 3, gamma: float = 0.9) -> None:
         self.clicked = False
         self.player = 1
         self.markers = np.zeros((board_size, board_size), dtype=np.int8)
         self.game_over = False
         self.winner = 0
+        self.gamma = gamma
 
         self.board_size = board_size
         self.win_condition = win_condition
@@ -119,43 +121,49 @@ class TicTacToe:
                 y_pos += 1
             x_pos += 1
 
-    def check_win(self):
+    @staticmethod
+    def check_win(markers: npt.NDArray[np.int8], win_condition: int) -> Tuple[bool, int]:
         """checks if there is a winner"""
-        for i in range(self.board_size):
-            for j in range(self.board_size):
-                col_sum = sum(self.markers[i, j : j + self.win_condition])
-                row_sum = sum(self.markers[i : i + self.win_condition, j])
+        board_size = markers.shape[0]
+        game_over = False
+        winner = 0
+
+        for i in range(board_size):
+            for j in range(board_size):
+                col_sum = sum(markers[i, j : j + win_condition])
+                row_sum = sum(markers[i : i + win_condition, j])
                 diag_sum = 0
                 anti_diag_sum = 0
-                for k in range(self.win_condition):
-                    if i + k < self.board_size and j + k < self.board_size:
-                        diag_sum += self.markers[i + k, j + k]
-                    if i + k < self.board_size and j - k >= 0:
-                        anti_diag_sum += self.markers[i + k, j - k]
+                for k in range(win_condition):
+                    if i + k < board_size and j + k < board_size:
+                        diag_sum += markers[i + k, j + k]
+                    if i + k < board_size and j - k >= 0:
+                        anti_diag_sum += markers[i + k, j - k]
 
                 if (
-                    col_sum == self.win_condition
-                    or row_sum == self.win_condition
-                    or diag_sum == self.win_condition
-                    or anti_diag_sum == self.win_condition
+                    col_sum == win_condition
+                    or row_sum == win_condition
+                    or diag_sum == win_condition
+                    or anti_diag_sum == win_condition
                 ):
-                    self.game_over = True
-                    self.winner = 1
+                    game_over = True
+                    winner = 1
                 elif (
-                    col_sum == -self.win_condition
-                    or row_sum == -self.win_condition
-                    or diag_sum == -self.win_condition
-                    or anti_diag_sum == -self.win_condition
+                    col_sum == -win_condition
+                    or row_sum == -win_condition
+                    or diag_sum == -win_condition
+                    or anti_diag_sum == -win_condition
                 ):
-                    self.game_over = True
-                    self.winner = 2
+                    game_over = True
+                    winner = 2
 
         # check for tie
-        abs_markers = np.absolute(self.markers)
-        if np.sum(abs_markers) == self.board_size**2:
-            print(self.markers)
-            self.game_over = True
-            self.winner = 0
+        abs_markers = np.absolute(markers)
+        if np.sum(abs_markers) == board_size**2:
+            game_over = True
+            winner = 0
+        
+        return game_over, winner
 
     def draw_game_over(self, winner: int):
         """draws the game over screen"""
@@ -192,7 +200,6 @@ class TicTacToe:
         if self.is_legal_action(self.markers, x, y):
             self.markers[x][y] = player
             self.player = -self.player
-            self.check_win()
 
     @staticmethod
     def is_legal_action(state: np.ndarray, x: int, y: int) -> bool:
@@ -273,6 +280,10 @@ class TicTacToe:
                 next_state_index = self.state_to_index(next_state)
                 self.transition_matrix[i][next_state_index] = 1 / len(available_actions)
 
+            if np.sum(self.transition_matrix[i]) == 0:
+                # if we can't transition from this state, then it is a terminal state
+                continue
+
             # normalize the row
             self.transition_matrix[i] /= self.transition_matrix[i].sum()
             val = np.sum(self.transition_matrix[i])
@@ -288,7 +299,7 @@ class TicTacToe:
 
             # check if the row is valid
             if np.isnan(self.transition_matrix[i].sum()):
-                self.transition_matrix[i] = np.zeros(3**self.num_cells)
+                self.transition_matrix[i] = np.zeros(3**self.num_cells, dtype=np.float16)
             elif np.sum(self.transition_matrix[i]) != 1:
                 print(
                     "Error in transition matrix",
@@ -299,7 +310,7 @@ class TicTacToe:
 
     def reset(self):
         """resets the game"""
-        self.markers = np.zeros((self.board_size, self.board_size))
+        self.markers = np.zeros((self.board_size, self.board_size), dtype=np.int8)
         self.player = 1
         self.game_over = False
         self.winner = 0
@@ -330,10 +341,117 @@ class TicTacToe:
 
         return self.transition_matrix[current_state_index][next_state_index]
 
+    def reward_function(self, state: npt.NDArray[np.int8]) -> float:
+        """A utility function to get the reward of the a state
+
+        Returns:
+            float: the reward of the current state
+        """
+        game_over, winner = TicTacToe.check_win(state, self.win_condition)
+        if game_over:
+            if winner == 0:
+                return 0.5
+            elif winner == 1:
+                return 1
+            else:
+                return -1
+        return 0
+
+    @staticmethod
+    def expected_value(probabilities: npt.NDArray[np.float16], value: npt.NDArray[np.float16]) -> np.float16:
+        """A utility function to calculate the expected value
+
+        Args:
+            probabilities (np.ndarray): the probabilities of the actions
+            rewards (np.ndarray): the rewards of the actions
+
+        Returns:
+            float: the expected value
+        """
+        return np.sum(probabilities * value)
+
+    
+    def _dynamic_transition(self, state: npt.NDArray[np.int8]) -> npt.NDArray[np.float16]:
+        """A utility function to calculate the transition probabilities dynamically based on the current state and available actions
+        Args:
+            state (np.ndarray): the current state of the board
+
+        Returns:
+            np.ndarray: the transition probabilities
+        """
+        available_actions = self.available_actions(state)
+        probabilities = np.zeros(3**self.num_cells, dtype=np.float16)
+        if len(available_actions) == 0:
+            return probabilities
+
+        probability = 1 / len(available_actions)
+        for action in available_actions:
+            next_state = state.copy()
+            next_state[action[0]][action[1]] = self.player
+            next_state_index = self.state_to_index(next_state)
+            probabilities[next_state_index] = probability # TODO: change from uniform to dynamic
+
+        return probabilities
+
+    def update_values(self, epsilon: float = 1e-4) -> npt.NDArray[np.float16]:
+        values = np.zeros(3**self.num_cells, dtype=np.float16)
+        delta = 0
+
+        while delta < epsilon:
+            for i in range(3**self.num_cells):
+                v = values[i]
+                max_expected_value = -np.inf
+                reward = self.reward_function(self.index_to_state(i))
+                for action in self.available_actions(self.index_to_state(i)):
+                    next_state = self.index_to_state(i).copy()
+                    next_state[action[0]][action[1]] = self.player
+                    next_state_index = self.state_to_index(next_state)
+                    max_expected_value = max(max_expected_value, values[next_state_index])
+
+                if max_expected_value == -np.inf:
+                    # if the state is terminal, then the expected value is 0
+                    max_expected_value = 0
+
+                values[i] = reward + self.gamma * max_expected_value            
+
+                delta = max(delta, abs(v - values[i]))
+
+        return values
+
+
+    def get_policy(self) -> Tuple[npt.NDArray, npt.NDArray]:
+        """Generates a policy based on value iteration
+
+        Returns:
+            Tuple[npt.NDArray, npt.NDArray]: A tuple of policy and values
+        """
+        policy = np.array([(-1, -1)] * 3 ** self.num_cells)
+        values = self.update_values()
+        for i in range(len(policy)):
+            best_action = None
+            max_expected_value = -np.inf
+            current_state = self.index_to_state(i)
+            available_actions = self.available_actions(current_state)
+            for action in available_actions:
+                next_state = self.index_to_state(i).copy()
+                next_state[action[0]][action[1]] = self.player
+                next_state_index = self.state_to_index(next_state)
+                if values[next_state_index] > max_expected_value:
+                    best_action = action
+
+            if best_action is None:
+                # print(f"Could not find a best action for the state {current_state}")
+                pass
+            else:
+                policy[i] = best_action
+
+        return policy, values
+
 
 def main():
     # initialize pygame
     game = TicTacToe(4, 3)
+    policy, values = game.get_policy()
 
     # set up clock (for efficiency)
     clock = pygame.time.Clock()
@@ -360,7 +478,9 @@ def main():
                 ]
                 if probabilities.sum() == 0:
                     # game is over
-                    game.check_win()
+                    game_over, winner = game.check_win(game.markers, game.win_condition)
+                    game.game_over = game_over
+                    game.winner = winner
                 else:
                     next_state_index = int(rng.multinomial(1, probabilities).argmax())
 
@@ -373,7 +493,9 @@ def main():
                 random_action = rng.choice(game.available_actions(game.markers))
                 x, y = random_action
                 game.place_marker(x, y, game.player)
-                game.check_win()
+                game_over, winner = game.check_win(game.markers, game.win_condition)
+                game.game_over = game_over
+                game.winner = winner
 
         # check if game has been won
         if game.game_over == True:
@@ -400,4 +522,14 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    game = TicTacToe(3, 3)
+    policy, values = game.get_policy()
+    np.save("policy.npy", policy)
+
+    policy = np.load("policy.npy")
+
+    state = np.array([[1, -1, -1], [-1, 0, 1], [1, 1, -1]])
+    index = TicTacToe.state_to_index(state)
+    print(index)
+    print(policy[index])

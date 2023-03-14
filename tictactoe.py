@@ -222,8 +222,7 @@ class TicTacToe:
         return game_over, winner
 
     def place_marker(self, x: int, y: int) -> None:
-        """places a marker on the board and updates the board inpalce
-
+        """Places a marker on the board and updates the board inplace. Also updates the current player
         Args:
             x (int): column
             y (int): row
@@ -634,7 +633,8 @@ def main(load_policy: bool = False):
                         )
                         game.game_over = game_over
                         game.winner = winner
-            elif game.player == -1:
+
+            if game.player == -1:
                 print("Player 2's turn")
                 # get next move
                 state = game.state_to_index(game.markers)
@@ -643,11 +643,9 @@ def main(load_policy: bool = False):
                 if action[0] == -1 and action[1] == -1:
                     print("No action found for state", game.markers)
                 game.place_marker(action[0], action[1])
-                # print("Placed marker at", action, values[state])
                 game_over, winner = game.check_win(game.markers, game.win_condition)
                 game.game_over = game_over
                 game.winner = winner
-            game.draw_markers()
 
         # check if game has been won
         if game.game_over == True:
@@ -668,6 +666,7 @@ def main(load_policy: bool = False):
                 mouse_clicked = True
 
         # update display
+        game.draw_markers()
         pygame.display.update()
 
     pygame.quit()
@@ -675,7 +674,7 @@ def main(load_policy: bool = False):
 
 if __name__ == "__main__":
     DEBUG_STATE = -1
-    main(load_policy=False)
+    main(load_policy=True)
     # game = TicTacToe(3, 3)
 
     # state = np.array([

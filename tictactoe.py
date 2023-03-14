@@ -54,14 +54,6 @@ class TicTacToe:
 
         self.num_cells = self.board_size**2
 
-        # try:
-        #     self._initialize_transition_matrix()
-        #     self.random_function = False
-        # except MemoryError:
-        #     print("Memory Error: Transition Matrix is too large")
-        #     print("Using random function instead")
-        #     self.random_function = True
-
         self.SCREEN_WIDTH, self.SCREEN_HEIGHT = (
             self.board_size * SCALING_FACTOR,
             self.board_size * SCALING_FACTOR,
@@ -174,7 +166,7 @@ class TicTacToe:
             game_over = True
             winner = 1
             return game_over, winner
-        
+
         if -win_condition in row_sum:
             game_over = True
             winner = 2
@@ -200,16 +192,10 @@ class TicTacToe:
                     if i + k < board_size and j - k >= 0:
                         anti_diag_sum += state[i + k, j - k]
 
-                if (
-                    diag_sum == win_condition
-                    or anti_diag_sum == win_condition
-                ):
+                if diag_sum == win_condition or anti_diag_sum == win_condition:
                     game_over = True
                     winner = 1
-                elif (
-                    diag_sum == -win_condition
-                    or anti_diag_sum == -win_condition
-                ):
+                elif diag_sum == -win_condition or anti_diag_sum == -win_condition:
                     game_over = True
                     winner = 2
 
@@ -297,85 +283,13 @@ class TicTacToe:
             return np.array([])
         return np.argwhere(state == 0)
 
-    def _initialize_transition_matrix(self):
-        """A utility function to initialize the transition matrix"""
-        self.transition_matrix = np.zeros(
-            (3**self.num_cells, 3**self.num_cells), dtype=np.float16
-        )
-        for i in range(3**self.num_cells):
-            marker = 1 if i % 2 == 0 else -1
-            state = self.index_to_state(i)
-            available_actions = self.available_actions(state)
-            for action in available_actions:
-                next_state = state.copy()
-                next_state[action[0]][action[1]] = marker
-                next_state_index = self.state_to_index(next_state)
-                self.transition_matrix[i][next_state_index] = 1 / len(available_actions)
-
-            if np.sum(self.transition_matrix[i]) == 0:
-                # if we can't transition from this state, then it is a terminal state
-                continue
-
-            # normalize the row
-            self.transition_matrix[i] /= self.transition_matrix[i].sum()
-            val = np.sum(self.transition_matrix[i])
-
-            # A hack to fix the floating point error; ref: https://github.com/numpy/numpy/issues/8317
-            # check the first non-zero index in the row
-            first_non_zero_index = np.argwhere(self.transition_matrix[i] != 0)[0][0]
-            self.transition_matrix[i][first_non_zero_index] = (
-                1
-                - np.sum(self.transition_matrix[i])
-                + self.transition_matrix[i][first_non_zero_index]
-            )
-
-            # check if the row is valid
-            if np.isnan(self.transition_matrix[i].sum()):
-                self.transition_matrix[i] = np.zeros(
-                    3**self.num_cells, dtype=np.float16
-                )
-            elif np.sum(self.transition_matrix[i]) != 1:
-                print(
-                    "Error in transition matrix",
-                    i,
-                    self.transition_matrix[i].sum(),
-                    val,
-                )
-
     def reset(self):
         """resets the game"""
         self.markers = np.zeros((self.board_size, self.board_size), dtype=np.int8)
         self.player = 1
         self.game_over = False
         self.winner = 0
-        # try:
-        #     self._initialize_transition_matrix()
-        # except:
-        #     # silent ignore the exception because it was already raised in the constructor
-        #     pass
         self.clicked = False
-
-    def transition_function(
-        self, action: Tuple[int, int], next_state: np.ndarray
-    ) -> float:
-        """(Unused) A utility function to get the transition probability of the action
-
-        Args:
-            action (Tuple[int, int]): the action to be performed
-            next_state (np.ndarray): the state after the action is performed
-
-        Returns:
-            float: the transition probability of the action
-        """
-        current_state_index = self.state_to_index(self.markers)
-        next_state_index = self.state_to_index(next_state)
-        available_actions = np.argwhere(self.markers == 0)
-        if len(available_actions) == 0:
-            return 0
-        if action not in available_actions:
-            return 0
-
-        return self.transition_matrix[current_state_index][next_state_index]
 
     def is_valid_state(self, state: npt.NDArray[np.int8]) -> bool:
         """A utility function to check if the terminal state is possible
@@ -447,137 +361,73 @@ class TicTacToe:
         else:
             return -1
 
-    @staticmethod
-    def expected_value(
-        probabilities: npt.NDArray[np.float16], value: npt.NDArray[np.float16]
-    ) -> np.float16:
-        """A utility function to calculate the expected value
-
-        Args:
-            probabilities (np.ndarray): the probabilities of the actions
-            rewards (np.ndarray): the rewards of the actions
-
-        Returns:
-            float: the expected value
-        """
-        return np.sum(probabilities * value)
-
-    def _dynamic_transition(
-        self, state: npt.NDArray[np.int8]
-    ) -> npt.NDArray[np.float16]:
-        """A utility function to calculate the transition probabilities dynamically based on the current state and available actions
-        Args:
-            state (np.ndarray): the current state of the board
-
-        Returns:
-            np.ndarray: the transition probabilities
-        """
-        available_actions = self.available_actions(state)
-        probabilities = np.zeros(3**self.num_cells, dtype=np.float16)
-        if len(available_actions) == 0:
-            return probabilities
-
-        probability = 1 / len(available_actions)
-        for action in available_actions:
-            next_state = state.copy()
-            next_state[action[0]][action[1]] = self.player
-            next_state_index = self.state_to_index(next_state)
-            probabilities[
-                next_state_index
-            ] = probability  # TODO: change from uniform to dynamic
-
-        return probabilities
-
     def update_values(
-        self, epsilon: float = 1e-4, max_iterations: int = 100
+        self,
+        state: npt.NDArray[np.int8],
+        policy: npt.NDArray[np.int8],
+        prev_values: npt.NDArray[np.float16],
     ) -> npt.NDArray[np.float16]:
         values = np.zeros(3**self.num_cells).astype(np.float16)
-
-        delta = np.inf
-        num_iterations = 0
-        while num_iterations < max_iterations:
-            print("iteration", num_iterations, "delta", delta)
-            values_copy = values.copy()
-            for i in range(3**self.num_cells):
-                player = self.which_players_turn(self.index_to_state(i))
-                if not self.is_valid_state(self.index_to_state(i)):
-                    continue
-                if i == DEBUG_STATE:
-                    print("debug state", player)
-                current_state = self.index_to_state(i)
-                max_expected_value = -np.inf if player == 1 else np.inf
-                available_actions = self.available_actions(current_state)
-                reward = self.reward_function(current_state)
-                computed_values = []
-                for action in available_actions:
-                    next_state = current_state.copy()
-                    next_state[action[0]][action[1]] = player
-                    next_state_index = self.state_to_index(next_state)
-                    value = reward + self.gamma * values_copy[next_state_index]
-                    if player == 1:
-                        max_expected_value = max(max_expected_value, value)
-                    elif player == -1:
-                        max_expected_value = min(max_expected_value, value)
-                    computed_values.append(value)
-
-                player = -player
-
-                if i == DEBUG_STATE:
-                    print("available actions", available_actions.tolist())
-                    print("computed values", computed_values)
-
-                if len(available_actions) == 0 and self.is_valid_state(current_state):
-                    # if the state is terminal, then the expected value is 0
-                    max_expected_value = self.reward_function(current_state)
-                elif len(available_actions) == 0:
-                    max_expected_value = 0
-
-                values[i] = max_expected_value
-            delta = min(delta, np.max(np.abs(values_copy - values)))
-
-            num_iterations += 1
-
-            if delta < epsilon:
-                break
-
-        print("Value iteration converged after", num_iterations, "iterations to", delta)
+        for i in range(3**self.num_cells):
+            reward = self.reward_function(self.index_to_state(i))
+            next_state = self.index_to_state(i)
+            action_x, action_y = policy[i]
+            next_state[action_x][action_y] = self.which_players_turn(state)
+            next_state_index = self.state_to_index(next_state)
+            if not self.is_valid_state(next_state):
+                values[i] = 0
+            else:
+                values[i] = reward + self.gamma * prev_values[next_state_index]
 
         return values
 
-    def get_policy(self) -> Tuple[npt.NDArray, npt.NDArray]:
+    def get_policy(
+        self, epsilon: float = 1e-4, max_iterations: int = 100
+    ) -> Tuple[npt.NDArray, npt.NDArray]:
         """Generates a policy based on value iteration
 
         Returns:
             Tuple[npt.NDArray, npt.NDArray]: A tuple of policy and values
         """
-        policy = np.array([(-1, -1)] * 3**self.num_cells)
-        values = self.update_values()
-        for i in range(3**self.num_cells):
-            player = self.which_players_turn(self.index_to_state(i))
-            if i == DEBUG_STATE:
-                print("debug state")
-            best_action = None
-            max_expected_value = -np.inf if player == 1 else np.inf
-            current_state = self.index_to_state(i)
-            available_actions = self.available_actions(current_state)
-            for action in available_actions:
-                next_state = self.index_to_state(i).copy()
-                next_state[action[0]][action[1]] = player
-                next_state_index = self.state_to_index(next_state)
-                if player == 1 and values[next_state_index] > max_expected_value:
-                    best_action = action
-                    max_expected_value = values[next_state_index]
-                elif player == -1 and values[next_state_index] < max_expected_value:
-                    best_action = action
-                    max_expected_value = values[next_state_index]
+        policy = rng.integers(0, self.board_size, size=(3**self.num_cells, 2), dtype=np.int8)
+        values = self.update_values(
+            self.markers, policy, np.zeros(3**self.num_cells).astype(np.float16)
+        )
 
-            if best_action is None:
-                # print(f"Could not find a best action for the state {current_state}")
-                pass
-            else:
-                policy[i] = best_action
+        delta = np.inf
+        num_iterations = 0
+        while num_iterations < max_iterations:
+            for i in range(3**self.num_cells):
+                policy_copy = policy.copy()
+                prev_values = values.copy()
+                values = self.update_values(self.markers, policy, prev_values)
 
-            player = -player
+                state = self.index_to_state(i)
+                actions = self.available_actions(state)
+                if len(actions) == 0:
+                    continue
+                if not self.is_valid_state(state):
+                    continue
+                action_values = np.zeros(len(actions))
+                for j, action in enumerate(actions):
+                    next_state = state.copy()
+                    next_state[action[0]][action[1]] = self.which_players_turn(state)
+                    next_state_index = self.state_to_index(next_state)
+                    action_values[j] = values[next_state_index]
+
+                if self.which_players_turn(state) == 1:
+                    policy[i] = actions[np.argmax(action_values)]
+                else:
+                    policy[i] = actions[np.argmin(action_values)]
+
+                delta = np.max(policy_copy - policy)
+                if delta < epsilon:
+                    break
+
+            print("iteration:", num_iterations, "delta:", delta)
+            num_iterations += 1
+            
+        print(f"Policy iteration convereged to delta: {delta} in {num_iterations} iterations")
 
         return policy, values
 
@@ -674,7 +524,7 @@ def main(load_policy: bool = False):
 
 if __name__ == "__main__":
     DEBUG_STATE = -1
-    main(load_policy=True)
+    main(load_policy=False)
     # game = TicTacToe(3, 3)
 
     # state = np.array([

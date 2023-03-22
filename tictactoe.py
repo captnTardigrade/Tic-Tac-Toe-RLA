@@ -63,33 +63,34 @@ class TicTacToe:
         self.win_condition = win_condition
 
         self.num_cells = self.board_size**2
+        self.num_states = 3 ** (self.num_cells)
 
         self.index_to_state_map: Dict[int, npt.NDArray[np.int8]] = {}
         self.state_to_index_map: Dict[tuple, int] = {}
-        self.valid_states = np.zeros(3**self.num_cells, dtype=bool)
-        self.rewards = np.zeros(3**self.num_cells, dtype=np.float16)
+        self.valid_states = np.zeros(self.num_states, dtype=bool)
+        self.rewards = np.zeros(self.num_states, dtype=np.float16)
         self.next_states: DefaultDict[int, List[int]] = defaultdict(list)
 
         # (state, next_state) -> action
         self.state_next_state_to_action = (
-            np.ones((3**self.num_cells, 3**self.num_cells), dtype=tuple) * -1
+            np.ones((self.num_states, self.num_states), dtype=tuple) * -1
         )
 
         # (state, action) -> next_state
-        self.state_action_to_next_state_map: DefaultDict[
-            Tuple[int, tuple], int
-        ] = defaultdict(lambda: -1)
+        self.state_action_to_next_state_map = np.ones(
+            (self.num_states, self.num_cells), dtype=int
+        ) * -1
 
-        self.available_actions_cache: Dict[int, List[tuple]] = {}
+        self.available_actions_cache: Dict[int, npt.NDArray[np.int8]] = {}
 
-        for i in np.arange(3**self.num_cells, dtype=int):
+        for i in np.arange(self.num_states, dtype=int):
             self.index_to_state_map[i] = self.index_to_state(i)
             state = self.index_to_state_map[i]
             self.state_to_index_map[tuple(state.flatten())] = i
             self.valid_states[i] = self.is_valid_state(state)
             self.rewards[i] = self.reward_function(state)
 
-        for i in np.arange(3**self.num_cells, dtype=int):
+        for i in np.arange(self.num_states, dtype=int):
             state = self.index_to_state_map[i]
             if self.valid_states[i]:
                 available_actions = self.available_actions(state)
@@ -100,7 +101,7 @@ class TicTacToe:
                     next_state = self.state_to_index_map[next_state]
                     self.next_states[i].append(next_state)
 
-        for i in np.arange(3**self.num_cells, dtype=int):
+        for i in np.arange(self.num_states, dtype=int):
             state = self.index_to_state_map[i]
             if self.valid_states[i]:
                 available_actions = self.available_actions(state)
@@ -110,14 +111,13 @@ class TicTacToe:
                     next_state = tuple(next_state.flatten())
                     next_state = self.state_to_index_map[next_state]
                     self.state_next_state_to_action[i][next_state] = action
-                    self.state_action_to_next_state_map[(i, tuple(action))] = next_state
+                    action = self.action_to_int(action)
+                    self.state_action_to_next_state_map[i, action] = next_state
 
-        for i in np.arange(3**self.num_cells, dtype=int):
+        for i in np.arange(self.num_states, dtype=int):
             state = self.index_to_state_map[i]
             if self.valid_states[i]:
-                self.available_actions_cache[i] = [
-                    tuple(x) for x in self.available_actions(state)
-                ]
+                self.available_actions_cache[i] = self.available_actions(state)
 
         print(f"Number of valid states: {np.sum(self.valid_states)}")
 
@@ -210,6 +210,18 @@ class TicTacToe:
         self.screen.blit(
             again_img, (self.SCREEN_WIDTH // 2 - 80, self.SCREEN_HEIGHT // 2 + 10)
         )
+
+    @staticmethod
+    def action_to_int(action: npt.NDArray[np.int8]) -> int:
+        """converts an action to an integer
+
+        Args:
+            action (npt.NDArray[np.int8]): the action
+
+        Returns:
+            int: the integer representation of the action
+        """
+        return 3 * action[0] + action[1]
 
     @staticmethod
     def check_win(state: npt.NDArray[np.int8], win_condition: int) -> Tuple[bool, int]:
@@ -337,7 +349,7 @@ class TicTacToe:
 
         return (-1, -1)
 
-    def available_actions(self, state: np.ndarray) -> np.ndarray:
+    def available_actions(self, state: np.ndarray) -> npt.NDArray[np.int8]:
         """A utility function to get the available actions
         Args:
             state (np.ndarray): the current state of the board
@@ -428,7 +440,9 @@ class TicTacToe:
         else:
             return -1
 
-    def get_next_states(self, state: npt.NDArray[np.int8], action: npt.NDArray[np.int8]) -> int:
+    def get_next_states(
+        self, state: npt.NDArray[np.int8], action: npt.NDArray[np.int8]
+    ) -> int:
         """A utility function to get the next state
 
         Returns:
@@ -438,26 +452,18 @@ class TicTacToe:
         next_state[action[0], action[1]] = self.which_players_turn(state)
         return self.state_to_index_map[tuple(next_state.flatten())]
 
-    
     def update_values(
         self,
         policy: npt.NDArray[np.int8],
         prev_values: npt.NDArray[np.float16],
     ) -> npt.NDArray[np.float16]:
+        actions = 3 * policy[:, 0] + policy[:, 1]
+        next_states = self.state_action_to_next_state_map[np.arange(self.num_states), actions]
         start = time.time()
-        next_states = np.array(
-            [
-                self.state_action_to_next_state_map[i, tuple(policy[i])]
-                if self.valid_states[i]
-                else -1
-                for i in np.arange(3**self.num_cells)
-            ]
-        )
-        end = time.time()
-
 
         next_states_values = prev_values[next_states]
         values = self.rewards + self.gamma * next_states_values
+        end = time.time()
 
         print(f"Time taken to update values: {end - start}")
         exit(1)
@@ -472,10 +478,10 @@ class TicTacToe:
             Tuple[npt.NDArray, npt.NDArray]: A tuple of policy and values
         """
         policy = rng.integers(
-            0, self.board_size, size=(3**self.num_cells, 2), dtype=np.int8
+            0, self.board_size, size=(self.num_states, 2), dtype=np.int8
         )
         values = self.update_values(
-            policy, np.zeros(3**self.num_cells).astype(np.float16)
+            policy, np.zeros(self.num_states).astype(np.float16)
         )
 
         delta = np.inf
@@ -483,7 +489,7 @@ class TicTacToe:
         while num_iterations < max_iterations:
             policy_copy = policy.copy()
             prev_values = values.copy()
-            for i in range(3**self.num_cells):
+            for i in range(self.num_states):
                 start = time.time()
                 state = self.index_to_state_map[i]
                 if not self.valid_states[i]:
@@ -494,11 +500,12 @@ class TicTacToe:
                 if len(actions) == 0:
                     continue
                 action_values = np.zeros(len(actions))
-                for j, action in enumerate(actions):
-                    next_state_index = self.state_action_to_next_state_map[
-                        i, tuple(action)
-                    ]
-                    action_values[j] = values[next_state_index]
+                action_ints = 3 * actions[:, 0] + actions[:, 1]
+
+                next_state_indices = self.state_action_to_next_state_map[
+                    i, action_ints
+                ]
+                action_values = values[next_state_indices]
 
                 if self.which_players_turn(state) == 1:
                     policy[i] = actions[np.argmax(action_values)]
@@ -612,7 +619,7 @@ def main(load_policy: bool = False):
 
 
 if __name__ == "__main__":
-    DEBUG_STATE = -1
+    DEBUG_STATE = 0
 
     with cProfile.Profile() as pr:
         main(load_policy=False)

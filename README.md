@@ -1,4 +1,6 @@
-# RLA_PA_1
+# Reinforcement Learning Algorithms Project
+## CS19B036 Kranthi Sedamaki
+
 Tic-Tac-Toe programming assignment for the RLA course
 
 ## Install requirements
@@ -9,3 +11,7 @@ pip install -r requirements.txt
 ```bash
 python3 main.py
 ```
+
+<!-- TODO -->
+## TODO
+- [ ] Update the valid states function

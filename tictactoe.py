@@ -4,12 +4,10 @@ import pygame
 import numpy as np
 from functools import reduce
 from collections import defaultdict
-import pandas as pd
 
 # profiling
 import cProfile
 import pstats
-import tuna
 
 # import typing
 from typing import Tuple, Dict, List, DefaultDict
@@ -77,9 +75,9 @@ class TicTacToe:
         )
 
         # (state, action) -> next_state
-        self.state_action_to_next_state_map = np.ones(
-            (self.num_states, self.num_cells), dtype=int
-        ) * -1
+        self.state_action_to_next_state_map = (
+            np.ones((self.num_states, self.num_cells), dtype=int) * -1
+        )
 
         self.available_actions_cache: Dict[int, npt.NDArray[np.int8]] = {}
 
@@ -119,7 +117,8 @@ class TicTacToe:
             if self.valid_states[i]:
                 self.available_actions_cache[i] = self.available_actions(state)
 
-        print(f"Number of valid states: {np.sum(self.valid_states)}")
+        if self.board_size == 3 and self.win_condition == 3:
+            assert self.valid_states.sum() == 5478
 
         self.SCREEN_WIDTH, self.SCREEN_HEIGHT = (
             self.board_size * SCALING_FACTOR,
@@ -392,10 +391,15 @@ class TicTacToe:
 
         for i in range(self.board_size):
             for j in range(self.board_size):
-                if i + self.win_condition > self.board_size or j + self.win_condition > self.board_size:
+                if (
+                    i + self.win_condition > self.board_size
+                    or j + self.win_condition > self.board_size
+                ):
                     break
 
-                sub_state = state[i:i + self.win_condition, j:j + self.win_condition]
+                sub_state = state[
+                    i : i + self.win_condition, j : j + self.win_condition
+                ]
 
                 row_sums = np.sum(sub_state, axis=1)
                 col_sums = np.sum(sub_state, axis=0)
@@ -406,14 +410,23 @@ class TicTacToe:
                 if -self.win_condition in row_sums or -self.win_condition in col_sums:
                     player_two_win = True
 
-                if i + self.win_condition <= self.board_size and j + self.win_condition <= self.board_size:
+                if (
+                    i + self.win_condition <= self.board_size
+                    and j + self.win_condition <= self.board_size
+                ):
                     diag_sum = np.trace(sub_state)
                     anti_diag_sum = np.trace(np.fliplr(sub_state))
 
-                    if diag_sum == self.win_condition or anti_diag_sum == self.win_condition:
+                    if (
+                        diag_sum == self.win_condition
+                        or anti_diag_sum == self.win_condition
+                    ):
                         player_one_win = True
 
-                    if diag_sum == -self.win_condition or anti_diag_sum == -self.win_condition:
+                    if (
+                        diag_sum == -self.win_condition
+                        or anti_diag_sum == -self.win_condition
+                    ):
                         player_two_win = True
 
         if player_one_win and player_two_win:
@@ -424,7 +437,7 @@ class TicTacToe:
 
         if player_two_win and num_ones > num_minus_ones:
             return False
-        
+
         return True
 
     def reward_function(self, state: npt.NDArray[np.int8]) -> float:
@@ -475,15 +488,16 @@ class TicTacToe:
         prev_values: npt.NDArray[np.float16],
     ) -> npt.NDArray[np.float16]:
         actions = 3 * policy[:, 0] + policy[:, 1]
-        next_states = self.state_action_to_next_state_map[np.arange(self.num_states), actions]
         start = time.time()
+        next_states = self.state_action_to_next_state_map[
+            np.arange(self.num_states), actions
+        ]
+        end = time.time()
 
         next_states_values = prev_values[next_states]
         values = self.rewards + self.gamma * next_states_values
-        end = time.time()
 
-        print(f"Time taken to update values: {end - start}")
-        exit(1)
+        # print(f"Time taken to update values: {end - start}")
         return values
 
     def get_policy(
@@ -494,9 +508,7 @@ class TicTacToe:
         Returns:
             Tuple[npt.NDArray, npt.NDArray]: A tuple of policy and values
         """
-        policy = rng.integers(
-            0, self.board_size, size=(self.num_states, 2), dtype=np.int8
-        )
+        policy = np.zeros((self.num_states, 2), dtype=np.int8)
         values = self.update_values(
             policy, np.zeros(self.num_states).astype(np.float16)
         )
@@ -506,22 +518,21 @@ class TicTacToe:
         while num_iterations < max_iterations:
             policy_copy = policy.copy()
             prev_values = values.copy()
+            values = self.update_values(policy, prev_values)
             for i in range(self.num_states):
                 start = time.time()
                 state = self.index_to_state_map[i]
                 if not self.valid_states[i]:
                     continue
-                values = self.update_values(policy, prev_values)
 
                 actions = self.available_actions_cache[i]
                 if len(actions) == 0:
                     continue
+
                 action_values = np.zeros(len(actions))
                 action_ints = 3 * actions[:, 0] + actions[:, 1]
 
-                next_state_indices = self.state_action_to_next_state_map[
-                    i, action_ints
-                ]
+                next_state_indices = self.state_action_to_next_state_map[i, action_ints]
                 action_values = values[next_state_indices]
 
                 if self.which_players_turn(state) == 1:
@@ -643,6 +654,7 @@ if __name__ == "__main__":
 
     results = pstats.Stats(pr)
     results.sort_stats(pstats.SortKey.TIME)
+    results.print_stats()
     results.dump_stats("profile_2.prof")
     # game = TicTacToe(3, 3)
 

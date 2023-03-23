@@ -371,43 +371,60 @@ class TicTacToe:
         self.clicked = False
 
     def is_valid_state(self, state: npt.NDArray[np.int8]) -> bool:
-        """A utility function to check if the terminal state is possible
+        """Checks if the state is valid
+
         Args:
-            state (npt.NDArray[np.int8]): the state to be checked
+            state (npt.NDArray[np.int8]): the input state
 
         Returns:
-            bool: Returns true if the state is possible
+            bool: returns true if the state is valid else false
         """
+
         num_ones = np.sum(state == 1)
         num_minus_ones = np.sum(state == -1)
         diff = num_ones - num_minus_ones
-        if 0 > diff or diff > 1:
+
+        if diff > 1 or diff < 0:
             return False
 
-        rows_sum = np.sum(state, axis=1)
-        if self.win_condition in rows_sum and -self.win_condition in rows_sum:
-            return False
-
-        cols_sum = np.sum(state, axis=0)
-        if self.win_condition in cols_sum and -self.win_condition in cols_sum:
-            return False
+        player_one_win = False
+        player_two_win = False
 
         for i in range(self.board_size):
             for j in range(self.board_size):
-                diag_sum = 0
-                anti_diag_sum = 0
-                for k in range(self.win_condition):
-                    if i + k < self.board_size and j + k < self.board_size:
-                        diag_sum += self.markers[i + k, j + k]
-                    if i + k < self.board_size and j - k >= 0:
-                        anti_diag_sum += self.markers[i + k, j - k]
+                if i + self.win_condition > self.board_size or j + self.win_condition > self.board_size:
+                    break
 
-                if (
-                    diag_sum == self.win_condition
-                    and anti_diag_sum == -self.win_condition
-                ):
-                    return False
+                sub_state = state[i:i + self.win_condition, j:j + self.win_condition]
 
+                row_sums = np.sum(sub_state, axis=1)
+                col_sums = np.sum(sub_state, axis=0)
+
+                if self.win_condition in row_sums or self.win_condition in col_sums:
+                    player_one_win = True
+
+                if -self.win_condition in row_sums or -self.win_condition in col_sums:
+                    player_two_win = True
+
+                if i + self.win_condition <= self.board_size and j + self.win_condition <= self.board_size:
+                    diag_sum = np.trace(sub_state)
+                    anti_diag_sum = np.trace(np.fliplr(sub_state))
+
+                    if diag_sum == self.win_condition or anti_diag_sum == self.win_condition:
+                        player_one_win = True
+
+                    if diag_sum == -self.win_condition or anti_diag_sum == -self.win_condition:
+                        player_two_win = True
+
+        if player_one_win and player_two_win:
+            return False
+
+        if player_one_win and num_ones <= num_minus_ones:
+            return False
+
+        if player_two_win and num_ones > num_minus_ones:
+            return False
+        
         return True
 
     def reward_function(self, state: npt.NDArray[np.int8]) -> float:

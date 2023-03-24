@@ -133,3 +133,6 @@ dmypy.json
 
 # NumPy arrays
 *.npy
+
+# profiler
+*.prof

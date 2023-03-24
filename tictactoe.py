@@ -297,50 +297,50 @@ class TicTacToe:
             return np.array([])
         return np.argwhere(state == 0)
 
-    def _initialize_transition_matrix(self):
-        """A utility function to initialize the transition matrix"""
-        self.transition_matrix = np.zeros(
-            (3**self.num_cells, 3**self.num_cells), dtype=np.float16
-        )
-        for i in range(3**self.num_cells):
-            marker = 1 if i % 2 == 0 else -1
-            state = self.index_to_state(i)
-            available_actions = self.available_actions(state)
-            for action in available_actions:
-                next_state = state.copy()
-                next_state[action[0]][action[1]] = marker
-                next_state_index = self.state_to_index(next_state)
-                self.transition_matrix[i][next_state_index] = 1 / len(available_actions)
+    # def _initialize_transition_matrix(self):
+    #     """ (Unused) A utility function to initialize the transition matrix"""
+    #     self.transition_matrix = np.zeros(
+    #         (3**self.num_cells, 3**self.num_cells), dtype=np.float16
+    #     )
+    #     for i in range(3**self.num_cells):
+    #         marker = 1 if i % 2 == 0 else -1
+    #         state = self.index_to_state(i)
+    #         available_actions = self.available_actions(state)
+    #         for action in available_actions:
+    #             next_state = state.copy()
+    #             next_state[action[0]][action[1]] = marker
+    #             next_state_index = self.state_to_index(next_state)
+    #             self.transition_matrix[i][next_state_index] = 1 / len(available_actions)
 
-            if np.sum(self.transition_matrix[i]) == 0:
-                # if we can't transition from this state, then it is a terminal state
-                continue
+    #         if np.sum(self.transition_matrix[i]) == 0:
+    #             # if we can't transition from this state, then it is a terminal state
+    #             continue
 
-            # normalize the row
-            self.transition_matrix[i] /= self.transition_matrix[i].sum()
-            val = np.sum(self.transition_matrix[i])
+    #         # normalize the row
+    #         self.transition_matrix[i] /= self.transition_matrix[i].sum()
+    #         val = np.sum(self.transition_matrix[i])
 
-            # A hack to fix the floating point error; ref: https://github.com/numpy/numpy/issues/8317
-            # check the first non-zero index in the row
-            first_non_zero_index = np.argwhere(self.transition_matrix[i] != 0)[0][0]
-            self.transition_matrix[i][first_non_zero_index] = (
-                1
-                - np.sum(self.transition_matrix[i])
-                + self.transition_matrix[i][first_non_zero_index]
-            )
+    #         # A hack to fix the floating point error; ref: https://github.com/numpy/numpy/issues/8317
+    #         # check the first non-zero index in the row
+    #         first_non_zero_index = np.argwhere(self.transition_matrix[i] != 0)[0][0]
+    #         self.transition_matrix[i][first_non_zero_index] = (
+    #             1
+    #             - np.sum(self.transition_matrix[i])
+    #             + self.transition_matrix[i][first_non_zero_index]
+    #         )
 
-            # check if the row is valid
-            if np.isnan(self.transition_matrix[i].sum()):
-                self.transition_matrix[i] = np.zeros(
-                    3**self.num_cells, dtype=np.float16
-                )
-            elif np.sum(self.transition_matrix[i]) != 1:
-                print(
-                    "Error in transition matrix",
-                    i,
-                    self.transition_matrix[i].sum(),
-                    val,
-                )
+    #         # check if the row is valid
+    #         if np.isnan(self.transition_matrix[i].sum()):
+    #             self.transition_matrix[i] = np.zeros(
+    #                 3**self.num_cells, dtype=np.float16
+    #             )
+    #         elif np.sum(self.transition_matrix[i]) != 1:
+    #             print(
+    #                 "Error in transition matrix",
+    #                 i,
+    #                 self.transition_matrix[i].sum(),
+    #                 val,
+    #             )
 
     def reset(self):
         """resets the game"""
@@ -355,65 +355,94 @@ class TicTacToe:
         #     pass
         self.clicked = False
 
-    def transition_function(
-        self, action: Tuple[int, int], next_state: np.ndarray
-    ) -> float:
-        """(Unused) A utility function to get the transition probability of the action
+    # def transition_function(
+    #     self, action: Tuple[int, int], next_state: np.ndarray
+    # ) -> float:
+    #     """(Unused) A utility function to get the transition probability of the action
 
-        Args:
-            action (Tuple[int, int]): the action to be performed
-            next_state (np.ndarray): the state after the action is performed
+    #     Args:
+    #         action (Tuple[int, int]): the action to be performed
+    #         next_state (np.ndarray): the state after the action is performed
 
-        Returns:
-            float: the transition probability of the action
-        """
-        current_state_index = self.state_to_index(self.markers)
-        next_state_index = self.state_to_index(next_state)
-        available_actions = np.argwhere(self.markers == 0)
-        if len(available_actions) == 0:
-            return 0
-        if action not in available_actions:
-            return 0
+    #     Returns:
+    #         float: the transition probability of the action
+    #     """
+    #     current_state_index = self.state_to_index(self.markers)
+    #     next_state_index = self.state_to_index(next_state)
+    #     available_actions = np.argwhere(self.markers == 0)
+    #     if len(available_actions) == 0:
+    #         return 0
+    #     if action not in available_actions:
+    #         return 0
 
-        return self.transition_matrix[current_state_index][next_state_index]
+    #     return self.transition_matrix[current_state_index][next_state_index]
 
     def is_valid_state(self, state: npt.NDArray[np.int8]) -> bool:
-        """A utility function to check if the terminal state is possible
+        """Checks if the state is valid
         Args:
-            state (npt.NDArray[np.int8]): the state to be checked
-
+            state (npt.NDArray[np.int8]): the input state
         Returns:
-            bool: Returns true if the state is possible
+            bool: returns true if the state is valid else false
         """
+
         num_ones = np.sum(state == 1)
         num_minus_ones = np.sum(state == -1)
         diff = num_ones - num_minus_ones
-        if 0 > diff or diff > 1:
+
+        if diff > 1 or diff < 0:
             return False
 
-        rows_sum = np.sum(state, axis=1)
-        if self.win_condition in rows_sum and -self.win_condition in rows_sum:
-            return False
-
-        cols_sum = np.sum(state, axis=0)
-        if self.win_condition in cols_sum and -self.win_condition in cols_sum:
-            return False
+        player_one_win = False
+        player_two_win = False
 
         for i in range(self.board_size):
             for j in range(self.board_size):
-                diag_sum = 0
-                anti_diag_sum = 0
-                for k in range(self.win_condition):
-                    if i + k < self.board_size and j + k < self.board_size:
-                        diag_sum += self.markers[i + k, j + k]
-                    if i + k < self.board_size and j - k >= 0:
-                        anti_diag_sum += self.markers[i + k, j - k]
+                if (
+                    i + self.win_condition > self.board_size
+                    or j + self.win_condition > self.board_size
+                ):
+                    break
+
+                sub_state = state[
+                    i : i + self.win_condition, j : j + self.win_condition
+                ]
+
+                row_sums = np.sum(sub_state, axis=1)
+                col_sums = np.sum(sub_state, axis=0)
+
+                if self.win_condition in row_sums or self.win_condition in col_sums:
+                    player_one_win = True
+
+                if -self.win_condition in row_sums or -self.win_condition in col_sums:
+                    player_two_win = True
 
                 if (
-                    diag_sum == self.win_condition
-                    and anti_diag_sum == -self.win_condition
+                    i + self.win_condition <= self.board_size
+                    and j + self.win_condition <= self.board_size
                 ):
-                    return False
+                    diag_sum = np.trace(sub_state)
+                    anti_diag_sum = np.trace(np.fliplr(sub_state))
+
+                    if (
+                        diag_sum == self.win_condition
+                        or anti_diag_sum == self.win_condition
+                    ):
+                        player_one_win = True
+
+                    if (
+                        diag_sum == -self.win_condition
+                        or anti_diag_sum == -self.win_condition
+                    ):
+                        player_two_win = True
+
+        if player_one_win and player_two_win:
+            return False
+
+        if player_one_win and num_ones <= num_minus_ones:
+            return False
+
+        if player_two_win and num_ones > num_minus_ones:
+            return False
 
         return True
 
@@ -462,31 +491,31 @@ class TicTacToe:
         """
         return np.sum(probabilities * value)
 
-    def _dynamic_transition(
-        self, state: npt.NDArray[np.int8]
-    ) -> npt.NDArray[np.float16]:
-        """A utility function to calculate the transition probabilities dynamically based on the current state and available actions
-        Args:
-            state (np.ndarray): the current state of the board
+    # def _dynamic_transition(
+    #     self, state: npt.NDArray[np.int8]
+    # ) -> npt.NDArray[np.float16]:
+    #     """ (Unused) A utility function to calculate the transition probabilities dynamically based on the current state and available actions
+    #     Args:
+    #         state (np.ndarray): the current state of the board
 
-        Returns:
-            np.ndarray: the transition probabilities
-        """
-        available_actions = self.available_actions(state)
-        probabilities = np.zeros(3**self.num_cells, dtype=np.float16)
-        if len(available_actions) == 0:
-            return probabilities
+    #     Returns:
+    #         np.ndarray: the transition probabilities
+    #     """
+    #     available_actions = self.available_actions(state)
+    #     probabilities = np.zeros(3**self.num_cells, dtype=np.float16)
+    #     if len(available_actions) == 0:
+    #         return probabilities
 
-        probability = 1 / len(available_actions)
-        for action in available_actions:
-            next_state = state.copy()
-            next_state[action[0]][action[1]] = self.player
-            next_state_index = self.state_to_index(next_state)
-            probabilities[
-                next_state_index
-            ] = probability  # TODO: change from uniform to dynamic
+    #     probability = 1 / len(available_actions)
+    #     for action in available_actions:
+    #         next_state = state.copy()
+    #         next_state[action[0]][action[1]] = self.player
+    #         next_state_index = self.state_to_index(next_state)
+    #         probabilities[
+    #             next_state_index
+    #         ] = probability  # TODO: change from uniform to dynamic
 
-        return probabilities
+    #     return probabilities
 
     def update_values(
         self, epsilon: float = 1e-4, max_iterations: int = 100
@@ -674,7 +703,7 @@ def main(load_policy: bool = False):
 
 if __name__ == "__main__":
     DEBUG_STATE = -1
-    main(load_policy=True)
+    main(load_policy=False)
     # game = TicTacToe(3, 3)
 
     # state = np.array([

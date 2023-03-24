@@ -1,4 +1,5 @@
 # import modules
+import pickle
 import time
 import pygame
 import numpy as np
@@ -50,6 +51,7 @@ class TicTacToe:
         win_condition: int = 3,
         gamma: np.float16 = np.float16(0.9),
     ) -> None:
+        print("Initializing Tic-Tac-Toe game")
         self.clicked = False
         self.player = 1
         self.markers = np.zeros((board_size, board_size), dtype=np.int8)
@@ -130,6 +132,19 @@ class TicTacToe:
         pygame.display.set_caption("Tic-Tac-Toe")
 
         # setup a rectangle for "Play Again" Option
+        self.again_rect = pygame.Rect(
+            self.SCREEN_WIDTH // 2 - 80, self.SCREEN_HEIGHT // 2, 160, 50
+        )
+
+    def __getstate__(self):
+        self.__dict__.pop("screen")
+        self.__dict__.pop("again_rect")
+        return self.__dict__
+
+    def __setstate__(self, state):
+        self.__dict__ = state
+        self.screen = pygame.display.set_mode((self.SCREEN_WIDTH, self.SCREEN_HEIGHT))
+        pygame.display.set_caption("Tic-Tac-Toe")
         self.again_rect = pygame.Rect(
             self.SCREEN_WIDTH // 2 - 80, self.SCREEN_HEIGHT // 2, 160, 50
         )
@@ -557,9 +572,17 @@ class TicTacToe:
         return policy, values
 
 
-def main(load_policy: bool = False):
+def main(load_policy: bool = False, load_game: bool = False):
     # initialize pygame
-    game = TicTacToe(3, 3)
+    if load_game:
+        with open("game.pkl", "rb") as f:
+            game: TicTacToe = pickle.load(f)
+    else:
+        game = TicTacToe(3, 3)
+        with open("game.pkl", "wb") as f:
+            pickle.dump(game, f)
+        
+
     if load_policy:
         with open("policy.npy", "rb") as f:
             policy = np.load(f)
@@ -651,12 +674,12 @@ if __name__ == "__main__":
     DEBUG_STATE = 0
 
     with cProfile.Profile() as pr:
-        main(load_policy=True)
+        main(load_policy=False, load_game=False)
 
-    # results = pstats.Stats(pr)
-    # results.sort_stats(pstats.SortKey.TIME)
-    # results.print_stats()
-    # results.dump_stats("profile_2.prof")
+    results = pstats.Stats(pr)
+    results.sort_stats(pstats.SortKey.TIME)
+    results.print_stats()
+    results.dump_stats("profile.prof")
     # game = TicTacToe(3, 3)
 
     # state = np.array([

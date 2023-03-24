@@ -622,7 +622,9 @@ def main(load_policy: bool = False):
 
         # check if game has been won
         if game.game_over == True:
+            game.draw_markers()
             game.draw_game_over(game.winner)
+            pygame.display.update()
 
             mouse_clicked = False
             while not mouse_clicked:
@@ -639,7 +641,7 @@ def main(load_policy: bool = False):
                 mouse_clicked = True
 
         # update display
-        game.draw_markers()
+        # game.draw_markers()
         pygame.display.update()
 
     pygame.quit()
@@ -649,7 +651,7 @@ if __name__ == "__main__":
     DEBUG_STATE = 0
 
     with cProfile.Profile() as pr:
-        main(load_policy=False)
+        main(load_policy=True)
 
     # results = pstats.Stats(pr)
     # results.sort_stats(pstats.SortKey.TIME)

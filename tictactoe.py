@@ -86,7 +86,8 @@ class TicTacToe:
             state = self.index_to_state_map[i]
             self.state_to_index_map[tuple(state.flatten())] = i
             self.valid_states[i] = self.is_valid_state(state)
-            self.rewards[i] = self.reward_function(state)
+            if self.valid_states[i]:
+                self.rewards[i] = self.reward_function(state)
 
         for i in np.arange(self.num_states, dtype=int):
             state = self.index_to_state_map[i]
@@ -609,10 +610,8 @@ def main(load_policy: bool = False):
                         game.winner = winner
 
             if game.player == -1:
-                print("Player 2's turn")
                 # get next move
                 state = game.state_to_index(game.markers)
-                print(game.markers)
                 action = policy[state]
                 if action[0] == -1 and action[1] == -1:
                     print("No action found for state", game.markers)
@@ -652,16 +651,16 @@ if __name__ == "__main__":
     with cProfile.Profile() as pr:
         main(load_policy=False)
 
-    results = pstats.Stats(pr)
-    results.sort_stats(pstats.SortKey.TIME)
-    results.print_stats()
-    results.dump_stats("profile_2.prof")
+    # results = pstats.Stats(pr)
+    # results.sort_stats(pstats.SortKey.TIME)
+    # results.print_stats()
+    # results.dump_stats("profile_2.prof")
     # game = TicTacToe(3, 3)
 
     # state = np.array([
-    #     [1, -1, -1],
-    #     [-1, -1, 1],
-    #     [1, 1, 1]
+    #     [1, 0, 0],
+    #     [0, 0, 0],
+    #     [-1, 0, 1]
     # ])
 
     # print(game.check_win(state, 3))
@@ -670,8 +669,10 @@ if __name__ == "__main__":
 
     # state_index = game.state_to_index(state)
 
-    # DEBUG_STATE = -1
+    # DEBUG_STATE = state_index
 
     # policy, values = game.get_policy()
+
+    # print(values[state_index])
 
     # print(policy[state_index])

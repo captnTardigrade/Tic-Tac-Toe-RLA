@@ -80,11 +80,25 @@ class TicTacToe:
         )
 
     def __getstate__(self):
+        """Pickling the game object
+
+        Removes the screen and again_rect attributes from the game object
+
+        Returns:
+            dictionary: dictionary of the game object
+        """
         self.__dict__.pop("screen")
         self.__dict__.pop("again_rect")
         return self.__dict__
 
     def __setstate__(self, state):
+        """Unpickles the game object
+
+        Also restores the screen and again_rect attributes
+
+        Args:
+            state (dict): the loaded state from the memory
+        """
         self.__dict__ = state
         self.screen = pygame.display.set_mode((self.SCREEN_WIDTH, self.SCREEN_HEIGHT))
         pygame.display.set_caption("Tic-Tac-Toe")

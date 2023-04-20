@@ -103,6 +103,16 @@ def game_against_random_agent(
     num_games: int = 100,
     load_policy: bool = False,
 ) -> pd.DataFrame:
+    """Runs num_games number of games against a random agent
+
+    Args:
+        game (ValueIteration | PolicyIteration): the type of algorithm to use to compute the policy
+        num_games (int, optional): number of games to run. Defaults to 100.
+        load_policy (bool, optional): whether to load the policy from cache or to find one. Defaults to False.
+
+    Returns:
+        pd.DataFrame: a dataframe containing the game number, winner, and the final board state
+    """
     game_stats = []
     if load_policy:
         with open("policy.npy", "rb") as f:

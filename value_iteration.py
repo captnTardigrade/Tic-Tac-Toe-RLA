@@ -34,6 +34,15 @@ class ValueIteration(TicTacToe):
     def update_values(
         self, epsilon: float = 1e-4, max_iterations: int = 100
     ) -> npt.NDArray[np.float16]:
+        """Performs value update
+
+        Args:
+            epsilon (float, optional): the limiting difference. Defaults to 1e-4.
+            max_iterations (int, optional): max number of iterations the algorithm is allowed to run. Defaults to 100.
+
+        Returns:
+            npt.NDArray[np.float16]: an array of values for each state
+        """
         values = np.zeros(3**self.num_cells).astype(np.float16)
 
         delta = np.inf

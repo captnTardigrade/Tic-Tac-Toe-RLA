@@ -128,17 +128,23 @@ class PolicyIteration(tictactoe.TicTacToe):
         policy: npt.NDArray[np.int8],
         prev_values: npt.NDArray[np.float16],
     ) -> npt.NDArray[np.float16]:
+        """Updates the values of the states based on the policy
+
+        Args:
+            policy (npt.NDArray[np.int8]): The policy to use
+            prev_values (npt.NDArray[np.float16]): The current values for each state
+
+        Returns:
+            npt.NDArray[np.float16]: The updated values for each state
+        """
         actions = 3 * policy[:, 0] + policy[:, 1]
-        start = time.time()
         next_states = self.state_action_to_next_state_map[
             np.arange(self.num_states), actions
         ]
-        end = time.time()
 
         next_states_values = prev_values[next_states]
         values = self.rewards + self.gamma * next_states_values
 
-        # print(f"Time taken to update values: {end - start}")
         return values
 
     def get_policy(

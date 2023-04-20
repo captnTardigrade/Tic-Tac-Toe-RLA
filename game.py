@@ -1,7 +1,8 @@
 import numpy as np
+import pandas as pd
 import pygame
 
-from tictactoe import SCALING_FACTOR, FPS
+from tictactoe import SCALING_FACTOR, FPS, rng
 from policy_iteration import PolicyIteration
 from value_iteration import ValueIteration
 
@@ -97,6 +98,86 @@ def main(
     pygame.quit()
 
 
+def game_against_random_agent(
+    game: ValueIteration | PolicyIteration,
+    num_games: int = 100,
+    load_policy: bool = False,
+) -> pd.DataFrame:
+    game_stats = []
+    if load_policy:
+        with open("policy.npy", "rb") as f:
+            policy = np.load(f)
+    else:
+        policy, _ = game.get_policy()
+        with open("policy.npy", "wb") as f:
+            np.save(f, policy)
+    run = True
+    current_game_number = 0
+    while run and current_game_number < num_games:
+        # draw board and markers first
+        game.draw_board()
+        game.draw_markers()
+
+        # handle events
+        while not game.game_over:
+            # run new game
+            if game.player == 1:
+                available_actions = game.available_actions(game.markers)
+                random_action_idx = rng.integers(len(available_actions))
+                cell_x, cell_y = available_actions[random_action_idx]
+                if game.markers[cell_x][cell_y] == 0:
+                    game.place_marker(cell_x, cell_y)
+                    game_over, winner = game.check_win(
+                        game.markers, game.win_condition
+                    )
+                    game.game_over = game_over
+                    game.winner = winner
+
+            if game.player == -1:
+                # get next move
+                state = game.state_to_index(game.markers)
+                action = policy[state]
+                if not game.game_over and action[0] == -1 and action[1] == -1:
+                    print("No action found for state", game.markers)
+                game.place_marker(action[0], action[1])
+                game_over, winner = game.check_win(game.markers, game.win_condition)
+                game.game_over = game_over
+                game.winner = winner
+
+        # check if game has been won
+        if game.game_over == True:
+            game_stats.append([current_game_number, game.winner, game.markers])
+            current_game_number += 1
+            game.draw_markers()
+            game.draw_game_over(game.winner)
+            pygame.display.update()
+            game.reset()
+            
+        # update display
+        pygame.display.update()
+
+    game_df = pd.DataFrame(
+        game_stats, columns=["game", "winner", "final_state"]
+    )
+
+    return game_df
+
+
 if __name__ == "__main__":
-    game = PolicyIteration(3, 3)
-    main(game)
+    algorithms = {
+        "Value Iteraion": ValueIteration(3, 3),
+        "Policy Iteration": PolicyIteration(3, 3),
+    }
+
+    for algorithm, game in algorithms.items():
+        print(algorithm)
+        
+        results = game_against_random_agent(game, 1000, load_policy=False)
+
+        win_percent_by_player = results.groupby("winner").count()
+        win_percent_by_player["percent"] = (
+            100 * win_percent_by_player["game"] / win_percent_by_player["game"].sum()
+        )
+
+        print(win_percent_by_player)
+        print("*" * 50)

@@ -51,7 +51,6 @@ class TicTacToe:
         win_condition: int = 3,
         gamma: np.float16 = np.float16(0.9),
     ) -> None:
-        print("Initializing Tic-Tac-Toe game")
         self.clicked = False
         self.player = 1
         self.markers = np.zeros((board_size, board_size), dtype=np.int8)
@@ -182,18 +181,6 @@ class TicTacToe:
         self.screen.blit(
             again_img, (self.SCREEN_WIDTH // 2 - 80, self.SCREEN_HEIGHT // 2 + 10)
         )
-
-    @staticmethod
-    def action_to_int(action: npt.NDArray[np.int8]) -> int:
-        """converts an action to an integer
-
-        Args:
-            action (npt.NDArray[np.int8]): the action
-
-        Returns:
-            int: the integer representation of the action
-        """
-        return 3 * action[0] + action[1]
 
     @staticmethod
     def check_win(state: npt.NDArray[np.int8], win_condition: int) -> Tuple[bool, int]:
@@ -442,6 +429,44 @@ class TicTacToe:
             return 1
         else:
             return -1
+
+    
+    @staticmethod
+    def int_to_action(action_int: int) -> npt.NDArray[np.int8]:
+        """A utility function to convert the action int to action
+
+        Args:
+            action_int (int): the action int
+
+        Returns:
+            npt.NDArray[np.int8]: the action
+        """
+        return np.array([action_int // 3, action_int % 3])
+
+    
+    @staticmethod
+    def action_to_int(action: npt.NDArray[np.int8]) -> int:
+        """A utility function to convert the action to action int
+
+        Args:
+            action (npt.NDArray[np.int8]): the action
+
+        Returns:
+            int: the action int
+        """
+        return action[0] * 3 + action[1]
+
+    def is_terminal_state(self, state: npt.NDArray[np.int8]) -> bool:
+        """A utility function to check if the state is terminal
+
+        Args:
+            state (npt.NDArray[np.int8]): the state
+
+        Returns:
+            bool: returns true if the state is terminal else false
+        """
+        game_over, _ = self.check_win(state, self.win_condition)
+        return game_over
 
 
 if __name__ == "__main__":

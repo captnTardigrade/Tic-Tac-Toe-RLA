@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 import pandas as pd
 import pygame
@@ -5,6 +7,21 @@ import pygame
 from tictactoe import SCALING_FACTOR, FPS, rng
 from policy_iteration import PolicyIteration
 from value_iteration import ValueIteration
+from q_learning import QLearning
+
+logger = logging.getLogger(__name__)
+
+logger.setLevel(logging.INFO)
+formatter = logging.Formatter("%(asctime)s:%(name)s:%(message)s")
+
+file_handler = logging.FileHandler("logs/game.log")
+file_handler.setFormatter(formatter)
+
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(formatter)
+
+logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
 
 
 def main(
@@ -14,10 +31,14 @@ def main(
     if load_policy:
         with open("policy.npy", "rb") as f:
             policy = np.load(f)
+        with open("values.npy", "rb") as f:
+            values = np.load(f)
     else:
-        policy, _ = game.get_policy()
+        policy, values = game.get_policy()
         with open("policy.npy", "wb") as f:
             np.save(f, policy)
+        with open("values.npy", "wb") as f:
+            np.save(f, values)
 
     # # set up clock (for efficiency)
     clock = pygame.time.Clock()
@@ -65,7 +86,11 @@ def main(
                 state = game.state_to_index(game.markers)
                 action = policy[state]
                 if not game.game_over and action[0] == -1 and action[1] == -1:
-                    print("No action found for state", game.markers)
+                    logger.warn("No action found for state", game.markers)
+                if not game.game_over and not game.is_legal_action(game.markers, action[0], action[1]):
+                    logger.error(f"State {state}")
+                    logger.error(f"Q Values {values[state]}")
+                    logger.error(f"Illegal action {action}")
                 game.place_marker(action[0], action[1])
                 game_over, winner = game.check_win(game.markers, game.win_condition)
                 game.game_over = game_over
@@ -117,10 +142,14 @@ def game_against_random_agent(
     if load_policy:
         with open("policy.npy", "rb") as f:
             policy = np.load(f)
+        with open("values.npy", "rb") as f:
+            values = np.load(f)
     else:
-        policy, _ = game.get_policy()
+        policy, values = game.get_policy()
         with open("policy.npy", "wb") as f:
             np.save(f, policy)
+        with open("values.npy", "wb") as f:
+            np.save(f, values)
     run = True
     current_game_number = 0
     while run and current_game_number < num_games:
@@ -137,9 +166,7 @@ def game_against_random_agent(
                 cell_x, cell_y = available_actions[random_action_idx]
                 if game.markers[cell_x][cell_y] == 0:
                     game.place_marker(cell_x, cell_y)
-                    game_over, winner = game.check_win(
-                        game.markers, game.win_condition
-                    )
+                    game_over, winner = game.check_win(game.markers, game.win_condition)
                     game.game_over = game_over
                     game.winner = winner
 
@@ -148,7 +175,9 @@ def game_against_random_agent(
                 state = game.state_to_index(game.markers)
                 action = policy[state]
                 if not game.game_over and action[0] == -1 and action[1] == -1:
-                    print("No action found for state", game.markers)
+                    logger.warn("No action found for state", game.markers)
+                if not game.game_over and not game.is_legal_action(game.markers, action[0], action[1]):
+                    logger.error(f"Illegal action {action}")
                 game.place_marker(action[0], action[1])
                 game_over, winner = game.check_win(game.markers, game.win_condition)
                 game.game_over = game_over
@@ -162,26 +191,25 @@ def game_against_random_agent(
             game.draw_game_over(game.winner)
             pygame.display.update()
             game.reset()
-            
+
         # update display
         pygame.display.update()
 
-    game_df = pd.DataFrame(
-        game_stats, columns=["game", "winner", "final_state"]
-    )
+    game_df = pd.DataFrame(game_stats, columns=["game", "winner", "final_state"])
 
     return game_df
 
 
 if __name__ == "__main__":
     algorithms = {
-        "Value Iteraion": ValueIteration(3, 3),
-        "Policy Iteration": PolicyIteration(3, 3),
+        # "Value Iteraion": ValueIteration(3, 3),
+        # "Policy Iteration": PolicyIteration(3, 3),
+        "Q Learning": QLearning(3, 3),
     }
 
     for algorithm, game in algorithms.items():
-        print(algorithm)
-        
+        logger.info(algorithm)
+
         results = game_against_random_agent(game, 1000, load_policy=False)
 
         win_percent_by_player = results.groupby("winner").count()
@@ -189,5 +217,22 @@ if __name__ == "__main__":
             100 * win_percent_by_player["game"] / win_percent_by_player["game"].sum()
         )
 
-        print(win_percent_by_player)
-        print("*" * 50)
+        logger.info(win_percent_by_player)
+        logger.info("*" * 50)
+    
+    # main(algorithms["Q Learning"], load_policy=True)
+
+    # game = QLearning(3, 3)
+    # state = np.array([
+    #     [-1, 0, 0],
+    #     [0, 0, 0],
+    #     [1, 0, 1]],
+    #     dtype=np.int8
+    # )
+
+    # state_index = game.state_to_index(state)
+    # print(state_index)
+    # policy, q_table = game.get_policy()
+
+    # print(q_table[state_index])
+    # print(policy[state_index])

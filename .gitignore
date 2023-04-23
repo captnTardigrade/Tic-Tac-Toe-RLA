@@ -139,3 +139,6 @@ dmypy.json
 
 # pickle files
 *.pkl
+
+# statistics
+stats/

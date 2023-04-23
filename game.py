@@ -1,3 +1,4 @@
+import os
 import logging
 
 import numpy as np
@@ -206,6 +207,9 @@ if __name__ == "__main__":
         "Policy Iteration": PolicyIteration(3, 3),
         "Q Learning": QLearning(3, 3),
     }
+
+    if not os.path.exists("stats"):
+        os.mkdir("stats")        
 
     for algorithm, game in algorithms.items():
         logger.info(algorithm)

@@ -9,9 +9,8 @@ pip install -r requirements.txt
 ```
 ## Run the game
 ```bash
-python3 main.py
+python3 game.py
 ```
 
-<!-- TODO -->
-## TODO
-- [ ] Update the valid states function
+## Documentation
+The API documentation can be found [here](docs/tictactoe.pdf)

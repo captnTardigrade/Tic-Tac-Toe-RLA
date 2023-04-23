@@ -1,11 +1,12 @@
+import os
 import logging
 
 import numpy as np
 import numpy.typing as npt
 from typing import Dict, List, Tuple
 
-from policy_iteration import PolicyIteration
-from tictactoe import rng
+from rl_tictactoe.policy_iteration import PolicyIteration
+from rl_tictactoe.tictactoe import rng
 
 DEBUG_STATE = 81
 DEBUG_ACTION = 4
@@ -15,7 +16,11 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 formatter = logging.Formatter("%(asctime)s:%(name)s:%(message)s")
 
-file_handler = logging.FileHandler("logs/q_learning.log")
+logs_dir = "logs"
+if not os.path.exists(logs_dir):
+    os.makedirs(logs_dir)
+
+file_handler = logging.FileHandler(f"{logs_dir}/q_learning.log")
 file_handler.setFormatter(formatter)
 
 stream_handler = logging.StreamHandler()

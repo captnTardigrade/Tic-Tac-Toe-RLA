@@ -1,4 +1,5 @@
 # import modules
+import os
 import logging
 import numpy as np
 from collections import defaultdict
@@ -12,7 +13,11 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 formatter = logging.Formatter("%(asctime)s:%(name)s:%(message)s", datefmt='%m/%d/%Y %H:%M:%S',)
 
-file_handler = logging.FileHandler("logs/game.log")
+logs_dir = "logs"
+if not os.path.exists(logs_dir):
+    os.makedirs(logs_dir)
+
+file_handler = logging.FileHandler(f"{logs_dir}/game.log")
 file_handler.setFormatter(formatter)
 
 stream_handler = logging.StreamHandler()
@@ -21,7 +26,7 @@ stream_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 logger.addHandler(stream_handler)
 
-import tictactoe
+from rl_tictactoe import tictactoe
 
 # DEBUGGING
 DEBUG_STATE = -1

@@ -1,16 +1,22 @@
+import os
 import logging
 
 import numpy as np
 import numpy.typing as npt
-from tictactoe import TicTacToe
 from typing import Tuple
+
+from rl_tictactoe.tictactoe import TicTacToe
 
 logger = logging.getLogger(__name__)
 
 logger.setLevel(logging.INFO)
 formatter = logging.Formatter("%(asctime)s:%(name)s:%(message)s", datefmt='%m/%d/%Y %H:%M:%S',)
 
-file_handler = logging.FileHandler("logs/value_iteration.log")
+logs_dir = "logs"
+if not os.path.exists(logs_dir):
+    os.makedirs(logs_dir)
+
+file_handler = logging.FileHandler(f"{logs_dir}/value_iteration.log")
 file_handler.setFormatter(formatter)
 
 stream_handler = logging.StreamHandler()

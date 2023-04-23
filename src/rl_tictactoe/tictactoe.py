@@ -1,17 +1,10 @@
 # import modules
-import pickle
-import time
 import pygame
 import numpy as np
 from functools import reduce
-from collections import defaultdict
-
-# profiling
-import cProfile
-import pstats
 
 # import typing
-from typing import Tuple, Dict, List, DefaultDict
+from typing import Tuple
 import numpy.typing as npt
 
 SEED = 1337

@@ -5,17 +5,21 @@ import numpy as np
 import pandas as pd
 import pygame
 
-from tictactoe import SCALING_FACTOR, FPS, rng
-from policy_iteration import PolicyIteration
-from value_iteration import ValueIteration
-from q_learning import QLearning
+from rl_tictactoe.tictactoe import SCALING_FACTOR, FPS, rng
+from rl_tictactoe.policy_iteration import PolicyIteration
+from rl_tictactoe.value_iteration import ValueIteration
+from rl_tictactoe.q_learning import QLearning
 
 logger = logging.getLogger(__name__)
 
 logger.setLevel(logging.INFO)
 formatter = logging.Formatter("%(asctime)s:%(name)s:%(message)s", datefmt='%m/%d/%Y %H:%M:%S',)
 
-file_handler = logging.FileHandler("logs/game.log")
+logs_dir = "logs"
+if not os.path.exists(logs_dir):
+    os.makedirs(logs_dir)
+
+file_handler = logging.FileHandler(f"{logs_dir}/game.log")
 file_handler.setFormatter(formatter)
 
 stream_handler = logging.StreamHandler()

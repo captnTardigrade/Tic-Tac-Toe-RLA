@@ -1,15 +1,29 @@
-import pickle
-import pygame
+import logging
+
 import numpy as np
 import numpy.typing as npt
-from tictactoe import TicTacToe, FPS, SCALING_FACTOR
+from tictactoe import TicTacToe
 from typing import Tuple
-from copy import deepcopy
+
+logger = logging.getLogger(__name__)
+
+logger.setLevel(logging.INFO)
+formatter = logging.Formatter("%(asctime)s:%(name)s:%(message)s", datefmt='%m/%d/%Y %H:%M:%S',)
+
+file_handler = logging.FileHandler("logs/value_iteration.log")
+file_handler.setFormatter(formatter)
+
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(formatter)
+
+logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
 
 DEBUG_STATE = -1
 
 
 class ValueIteration(TicTacToe):
+    """Value Iteration algorithm for Tic-Tac-Toe"""
     def __init__(
         self, board_size: int = 3, win_condition: int = 3, gamma=np.float16(0.9)
     ) -> None:
@@ -48,14 +62,12 @@ class ValueIteration(TicTacToe):
         delta = np.inf
         num_iterations = 0
         while num_iterations < max_iterations:
-            print("iteration", num_iterations, "delta", delta)
+            logger.info(f"iteration: {num_iterations} delta: {delta}")
             values_copy = values.copy()
             for i in range(3**self.num_cells):
                 player = self.which_players_turn(self.index_to_state(i))
                 if not self.is_valid_state(self.index_to_state(i)):
                     continue
-                if i == DEBUG_STATE:
-                    print("debug state", player)
                 current_state = self.index_to_state(i)
                 max_expected_value = -np.inf if player == 1 else np.inf
                 available_actions = self.available_actions(current_state)
@@ -75,8 +87,8 @@ class ValueIteration(TicTacToe):
                 player = -player
 
                 if i == DEBUG_STATE:
-                    print("available actions", available_actions.tolist())
-                    print("computed values", computed_values)
+                    logger.debug("available actions", available_actions.tolist())
+                    logger.debug("computed values", computed_values)
 
                 if len(available_actions) == 0 and self.is_valid_state(current_state):
                     # if the state is terminal, then the expected value is 0
@@ -92,7 +104,7 @@ class ValueIteration(TicTacToe):
             if delta < epsilon:
                 break
 
-        print("Value iteration converged after", num_iterations, "iterations to", delta)
+        logger.info(f"Value iteration converged after {num_iterations} iterations to {delta}")
 
         return values
 

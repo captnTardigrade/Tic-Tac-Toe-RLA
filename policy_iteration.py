@@ -1,45 +1,30 @@
 # import modules
-import pickle
-import time
-import pygame
+import logging
 import numpy as np
-from functools import reduce
 from collections import defaultdict
-
-# profiling
-import cProfile
-import pstats
 
 # import typing
 from typing import Tuple, Dict, List, DefaultDict
 import numpy.typing as npt
 
+logger = logging.getLogger(__name__)
+
+logger.setLevel(logging.INFO)
+formatter = logging.Formatter("%(asctime)s:%(name)s:%(message)s", datefmt='%m/%d/%Y %H:%M:%S',)
+
+file_handler = logging.FileHandler("logs/game.log")
+file_handler.setFormatter(formatter)
+
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(formatter)
+
+logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
+
 import tictactoe
 
-SEED = 1337
-
-rng = np.random.default_rng(SEED)
-
-FPS = 60
-
-LINE_WIDTH = 6
-
-SCALING_FACTOR = 100
-
-# define colours
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-BLUE = (0, 0, 255)
-
-DIALOG_COLOR = (205, 180, 219)
-X_MARKER_COLOR = (247, 37, 133)
-O_MARKER_COLOR = (76, 201, 240)
-
-# define font
-font = pygame.font.SysFont("Arial", 40)
-
 # DEBUGGING
-DEBUG_STATE = 10258
+DEBUG_STATE = -1
 
 
 class PolicyIteration(tictactoe.TicTacToe):
@@ -167,7 +152,6 @@ class PolicyIteration(tictactoe.TicTacToe):
             prev_values = values.copy()
             values = self.update_values(policy, prev_values)
             for i in range(self.num_states):
-                start = time.time()
                 state = self.index_to_state_map[i]
                 if not self.valid_states[i]:
                     continue
@@ -187,16 +171,14 @@ class PolicyIteration(tictactoe.TicTacToe):
                 else:
                     policy[i] = actions[np.argmin(action_values)]
 
-                end = time.time()
-                # print(f"Time taken for iteration: {end - start} seconds")
             delta = np.max(np.abs(policy_copy - policy))
             if delta < epsilon:
                 break
 
-            print("iteration:", num_iterations, "delta:", delta)
+            logger.info(f"iteration: {num_iterations} delta: {delta}" )
             num_iterations += 1
 
-        print(
+        logger.info(
             f"Policy iteration convereged to delta: {delta} in {num_iterations} iterations"
         )
 

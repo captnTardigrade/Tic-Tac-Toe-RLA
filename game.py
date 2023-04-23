@@ -12,7 +12,7 @@ from q_learning import QLearning
 logger = logging.getLogger(__name__)
 
 logger.setLevel(logging.INFO)
-formatter = logging.Formatter("%(asctime)s:%(name)s:%(message)s")
+formatter = logging.Formatter("%(asctime)s:%(name)s:%(message)s", datefmt='%m/%d/%Y %H:%M:%S',)
 
 file_handler = logging.FileHandler("logs/game.log")
 file_handler.setFormatter(formatter)
@@ -202,8 +202,8 @@ def game_against_random_agent(
 
 if __name__ == "__main__":
     algorithms = {
-        # "Value Iteraion": ValueIteration(3, 3),
-        # "Policy Iteration": PolicyIteration(3, 3),
+        "Value Iteration": ValueIteration(3, 3),
+        "Policy Iteration": PolicyIteration(3, 3),
         "Q Learning": QLearning(3, 3),
     }
 
@@ -218,21 +218,5 @@ if __name__ == "__main__":
         )
 
         logger.info(win_percent_by_player)
+        win_percent_by_player.to_csv(f"stats/{algorithm}.csv")
         logger.info("*" * 50)
-    
-    # main(algorithms["Q Learning"], load_policy=True)
-
-    # game = QLearning(3, 3)
-    # state = np.array([
-    #     [-1, 0, 0],
-    #     [0, 0, 0],
-    #     [1, 0, 1]],
-    #     dtype=np.int8
-    # )
-
-    # state_index = game.state_to_index(state)
-    # print(state_index)
-    # policy, q_table = game.get_policy()
-
-    # print(q_table[state_index])
-    # print(policy[state_index])

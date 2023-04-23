@@ -4,7 +4,8 @@ import numpy as np
 import numpy.typing as npt
 from typing import Dict, List, Tuple
 
-from policy_iteration import PolicyIteration, rng
+from policy_iteration import PolicyIteration
+from tictactoe import rng
 
 DEBUG_STATE = 81
 DEBUG_ACTION = 4
@@ -27,12 +28,13 @@ from rich.progress import track
 
 
 class QLearning(PolicyIteration):
+    """Q Learning algorithm for Tic Tac Toe"""
     def __init__(
         self,
         board_size: int = 3,
         win_condition: int = 3,
         gamma=np.float16(0.9),
-        learning_rate=np.float16(0.2),
+        learning_rate=np.float16(0.1),
     ) -> None:
         super().__init__(board_size, win_condition, gamma)
         self.q_table = (
